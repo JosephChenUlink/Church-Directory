@@ -17,10 +17,13 @@
  *   Role, Last Name, First Name, （First Name 右邊未命名欄 = 中文姓名）, My Mark,
  *   Gender, Married?, Baptized?, Baptized Date, Birth Year, Status, Phone, Email, Address, Notes
  *
+ * 姓名修正：scripts/import-overrides.json 可補上缺漏的姓氏或統一拼法（見該檔說明）。
+ *
  * 重複執行是安全的：每位會員以「姓＋名」產生舊名冊編號（legacy_id），
  * 已存在者會更新資料，不會重複建檔。英文姓名比對不到時，再以中文姓名
  * （至少兩個字）比對，避免不同名冊英文拼法不同而重複建檔。
  */
+import fs from "node:fs";
 import path from "node:path";
 import ExcelJS from "exceljs";
 import { and, eq, isNull, ne, sql } from "drizzle-orm";
@@ -51,6 +54,17 @@ function valueOf(flag: string): string | undefined {
   const i = args.indexOf(flag);
   return i >= 0 ? args[i + 1] : undefined;
 }
+
+// ---------- 姓名修正表 ----------
+interface NameOverride {
+  lastName?: string;
+  firstName?: string;
+  chineseName?: string;
+}
+const overridesPath = path.join(path.dirname(new URL(import.meta.url).pathname), "import-overrides.json");
+const nameOverrides: Record<string, NameOverride> = fs.existsSync(overridesPath)
+  ? (JSON.parse(fs.readFileSync(overridesPath, "utf8")).names ?? {})
+  : {};
 
 // ---------- 儲存格轉文字 ----------
 function cellText(value: ExcelJS.CellValue): string {
@@ -186,12 +200,19 @@ function makeLegacyId(lastName: string, firstName: string, chineseName: string):
 
 function parseRow(raw: Record<string, ExcelJS.CellValue>, rowNumber: number): Parsed | { skip: string } {
   const row: Row = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, cellText(v)]));
-  const lastName = row.lastName ?? "";
-  const firstName = row.firstName ?? "";
-  const chineseName = row.chineseName ?? "";
+  let lastName = row.lastName ?? "";
+  let firstName = row.firstName ?? "";
+  let chineseName = row.chineseName ?? "";
   if (!lastName && !firstName && !chineseName) return { skip: "沒有姓名" };
 
   const warnings: string[] = [];
+  const override = nameOverrides[makeLegacyId(lastName, firstName, chineseName)];
+  if (override) {
+    lastName = override.lastName ?? lastName;
+    firstName = override.firstName ?? firstName;
+    chineseName = override.chineseName ?? chineseName;
+    warnings.push(`已依姓名修正表改為「${firstName} ${lastName}${chineseName ? `／${chineseName}` : ""}」`);
+  }
   if (!lastName || !firstName) warnings.push(`英文姓名不完整（姓：${lastName || "?"}，名：${firstName || "?"}）`);
   const englishName = `${firstName} ${lastName}`.replace(/\s+/g, " ").trim() || null;
   const fullName = chineseName || englishName || "（姓名不詳）";
