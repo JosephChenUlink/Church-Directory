@@ -57,6 +57,7 @@ npm run dev              # http://localhost:3000
 | `npm run build` / `npm start` | 正式建置與啟動 |
 | `npm run typecheck` / `npm run lint` | 型別檢查、程式風格檢查 |
 | `npm run db:generate` | 修改 `src/db/schema.ts` 後產生遷移檔 |
+| `npm run db:check` | 測試 DATABASE_URL 能否連線，並說明常見錯誤 |
 | `npm run db:migrate` | 套用遷移檔到資料庫 |
 | `npm run db:seed` | 初始化教會與管理員 |
 | `npm run import:excel -- <檔案.xlsx> [--dry-run]` | 從舊 Excel 名冊匯入會員 |

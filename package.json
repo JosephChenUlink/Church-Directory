@@ -13,7 +13,8 @@
     "db:studio": "node --env-file=.env ./node_modules/drizzle-kit/bin.cjs studio",
     "db:seed": "node --env-file=.env --import tsx scripts/seed.ts",
     "auth:generate": "better-auth generate --config auth-cli.config.ts --output src/db/auth-schema.ts -y",
-    "import:excel": "node --env-file=.env --import tsx scripts/import-excel.ts"
+    "import:excel": "node --env-file=.env --import tsx scripts/import-excel.ts",
+    "db:check": "node --env-file=.env --import tsx scripts/db-check.ts"
   },
   "dependencies": {
     "@better-auth/passkey": "^1.7.10",
