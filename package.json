@@ -12,7 +12,8 @@
     "db:migrate": "node --env-file=.env ./node_modules/drizzle-kit/bin.cjs migrate",
     "db:studio": "node --env-file=.env ./node_modules/drizzle-kit/bin.cjs studio",
     "db:seed": "node --env-file=.env --import tsx scripts/seed.ts",
-    "auth:generate": "better-auth generate --config auth-cli.config.ts --output src/db/auth-schema.ts -y"
+    "auth:generate": "better-auth generate --config auth-cli.config.ts --output src/db/auth-schema.ts -y",
+    "import:excel": "node --env-file=.env --import tsx scripts/import-excel.ts"
   },
   "dependencies": {
     "@better-auth/passkey": "^1.7.10",
@@ -36,6 +37,7 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
+    "exceljs": "^4.4.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5"

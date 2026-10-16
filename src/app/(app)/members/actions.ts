@@ -23,6 +23,12 @@ const memberSchema = z.object({
   englishName: text(100),
   gender: z.enum(["", "male", "female", "other"]).transform((v) => (v === "" ? null : v)),
   birthDate: dateField,
+  birthYear: z
+    .string()
+    .trim()
+    .regex(/^(\d{4})?$/, "出生年須為 4 位數字")
+    .transform((v) => (v === "" ? null : Number(v)))
+    .refine((v) => v === null || (v >= 1900 && v <= new Date().getFullYear()), "出生年不合理"),
   mobile: text(50),
   phone: text(50),
   email: z.union([z.literal(""), z.email("電子郵件格式不正確")]).transform((v) => (v === "" ? null : v)),

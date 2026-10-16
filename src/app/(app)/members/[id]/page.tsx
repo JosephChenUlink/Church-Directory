@@ -28,7 +28,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
   const canPhotos = can(user.role, "photos:write");
   const canSensitive = can(user.role, "members:read_sensitive");
   const canUpdates = can(user.role, "updates:write");
-  const age = calcAge(member.birthDate);
+  const age = calcAge(member.birthDate, member.birthYear);
 
   return (
     <div className="space-y-6">
@@ -44,7 +44,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
               <Badge tone={member.membershipStatus}>{MEMBERSHIP_STATUS_LABELS[member.membershipStatus]}</Badge>
               {member.fellowshipGroup ? <span>{member.fellowshipGroup}</span> : null}
               {member.gender ? <span>{GENDER_LABELS[member.gender]}</span> : null}
-              {age !== null ? <span>{age} 歲</span> : null}
+              {age !== null ? <span>{member.birthDate ? `${age} 歲` : `約 ${age} 歲`}</span> : null}
             </div>
           </div>
         </div>
@@ -64,7 +64,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
                 { label: "手機", value: member.mobile ? <a href={`tel:${member.mobile}`} className="text-accent hover:underline">{member.mobile}</a> : null },
                 { label: "電話", value: member.phone ? <a href={`tel:${member.phone}`} className="text-accent hover:underline">{member.phone}</a> : null },
                 { label: "電子郵件", value: member.email ? <a href={`mailto:${member.email}`} className="break-all text-accent hover:underline">{member.email}</a> : null },
-                { label: "生日", value: member.birthDate ? formatDate(member.birthDate) : null },
+                { label: "生日", value: member.birthDate ? formatDate(member.birthDate) : member.birthYear ? `${member.birthYear} 年（僅知出生年）` : null },
                 { label: "職業", value: member.occupation },
                 { label: "受洗日期", value: member.baptismDate ? formatDate(member.baptismDate) : null },
                 { label: "加入教會", value: member.joinedAt ? formatDate(member.joinedAt) : null },

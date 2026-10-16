@@ -38,6 +38,9 @@ export function MemberForm({ member, canEditSensitive }: { member?: MemberView; 
           <Field label="生日" htmlFor="birthDate" error={errors.birthDate}>
             <Input id="birthDate" name="birthDate" type="date" defaultValue={v("birthDate")} />
           </Field>
+          <Field label="出生年（不知道完整生日時填）" htmlFor="birthYear" error={errors.birthYear}>
+            <Input id="birthYear" name="birthYear" type="number" inputMode="numeric" min={1900} max={new Date().getFullYear()} defaultValue={member?.birthYear ?? ""} />
+          </Field>
           <Field label="手機" htmlFor="mobile" error={errors.mobile}>
             <Input id="mobile" name="mobile" type="tel" defaultValue={v("mobile")} inputMode="tel" />
           </Field>

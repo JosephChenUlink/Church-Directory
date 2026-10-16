@@ -24,8 +24,12 @@ export function formatDateTime(value: Date | string | null | undefined): string 
   return dateTimeFormatter.format(typeof value === "string" ? new Date(value) : value);
 }
 
-export function calcAge(birthDate: string | null | undefined): number | null {
-  if (!birthDate) return null;
+export function calcAge(birthDate: string | null | undefined, birthYear?: number | null): number | null {
+  if (!birthDate) {
+    if (!birthYear) return null;
+    const age = new Date().getFullYear() - birthYear;
+    return age >= 0 ? age : null;
+  }
   const [y, m, d] = birthDate.split("-").map(Number);
   if (!y || !m || !d) return null;
   const today = new Date();

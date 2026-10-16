@@ -8,6 +8,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema";
@@ -49,6 +50,8 @@ export const members = pgTable(
     englishName: text("english_name"),
     gender: genderEnum("gender"),
     birthDate: date("birth_date"),
+    /** 只知道出生年時使用（例如從舊名冊匯入） */
+    birthYear: integer("birth_year"),
     mobile: text("mobile"),
     phone: text("phone"),
     email: text("email"),
@@ -70,6 +73,9 @@ export const members = pgTable(
     profilePhotoKey: text("profile_photo_key"),
     profileThumbKey: text("profile_thumb_key"),
 
+    /** 舊名冊匯入時的來源識別碼，讓重複匯入時更新而非重複建檔 */
+    legacyId: text("legacy_id"),
+
     createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
     updatedBy: text("updated_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -81,6 +87,7 @@ export const members = pgTable(
     index("members_church_idx").on(table.churchId),
     index("members_church_name_idx").on(table.churchId, table.fullName),
     index("members_church_status_idx").on(table.churchId, table.membershipStatus),
+    uniqueIndex("members_church_legacy_idx").on(table.churchId, table.legacyId),
   ],
 );
 

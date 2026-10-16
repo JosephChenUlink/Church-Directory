@@ -59,7 +59,25 @@ npm run dev              # http://localhost:3000
 | `npm run db:generate` | 修改 `src/db/schema.ts` 後產生遷移檔 |
 | `npm run db:migrate` | 套用遷移檔到資料庫 |
 | `npm run db:seed` | 初始化教會與管理員 |
+| `npm run import:excel -- <檔案.xlsx> [--dry-run]` | 從舊 Excel 名冊匯入會員 |
 | `npm run auth:generate` | 更新 Better Auth 設定後重新產生 `src/db/auth-schema.ts` |
+
+## 從舊 Excel 名冊匯入
+
+`scripts/import-excel.ts` 可把舊版 Excel 名冊匯入會員資料表。先用 `--dry-run` 試跑看報告，確認後再正式匯入：
+
+```bash
+npm run import:excel -- "docs/San Jose Church Member Directory 2017-10-02.xlsx" --dry-run
+npm run import:excel -- "docs/San Jose Church Member Directory 2017-10-02.xlsx"
+```
+
+- 以第一列標題辨識欄位（Role、Last Name、First Name、中文姓名、Gender、Married?、Baptized?、Baptized Date、Birth Year、Status、Phone、Email、Address、Notes）。
+- 中文姓名作為「姓名」，英文姓名作為「英文名」；電話欄的 Home／Mobile／Office 會拆成電話、手機，其餘放入內部備註。
+- 家庭角色、已婚、已受洗、原備註等沒有對應欄位的資訊，都寫入「內部備註」，不會遺失。
+- 同一人出現多列（合併儲存格的續行或重複登錄）會自動合併；姓名不完整、電子郵件格式可疑的列會列在報告中請人工確認。
+- 重複執行是安全的：以姓名產生的舊名冊編號比對，已存在者更新、不重複建檔。
+- 可用 `--sheet "工作表名稱"` 指定工作表，`--label "2017 名冊"` 自訂備註中的來源標籤。
+- 正式環境請在本機把 `.env` 的 `DATABASE_URL` 指向 Supabase 後執行，匯入完成後到「操作紀錄」可看到一筆匯入摘要。
 
 ## 部署與新教會上線
 
@@ -94,6 +112,7 @@ src/
   proxy.ts             未登入直接導向登入頁
 drizzle/               資料庫遷移檔
 scripts/seed.ts        初始化腳本
+scripts/import-excel.ts 舊 Excel 名冊匯入
 docs/                  操作文件
 ```
 
