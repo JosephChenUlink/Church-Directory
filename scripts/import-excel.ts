@@ -10,6 +10,8 @@
  *   --sheet <名稱>      工作表名稱，預設用第一個工作表
  *   --dry-run           只分析並列出結果，不寫入資料庫
  *   --label <文字>      來源標籤，會寫進內部備註，預設為檔名
+ *   --only-new          只新增資料庫裡還沒有的人，已存在者完全不更動（匯入較舊的名冊時使用）
+ *   --note <文字>       附加到每位匯入者內部備註的說明（例如「僅出現在 2016 年名冊」）
  *
  * 支援的欄位（以第一列標題辨識，大小寫不拘）：
  *   Role, Last Name, First Name, （First Name 右邊未命名欄 = 中文姓名）, My Mark,
@@ -39,6 +41,8 @@ interface Parsed {
 const args = process.argv.slice(2);
 const filePath = args.find((a) => !a.startsWith("--"));
 const dryRun = args.includes("--dry-run");
+const onlyNew = args.includes("--only-new");
+const extraNote = valueOf("--note");
 const sheetName = valueOf("--sheet");
 const label = valueOf("--label") ?? (filePath ? path.basename(filePath, path.extname(filePath)) : "舊名冊");
 
@@ -275,7 +279,8 @@ async function main() {
   if (!headers.lastName || !headers.firstName) {
     throw new Error(`第一列找不到 Last Name / First Name 欄位。讀到的標題：${sheet.getRow(1).values}`);
   }
-  console.log(`檔案：${filePath}\n工作表：${sheet.name}\n教會：${church.name}（${slug}）${dryRun ? "\n模式：試跑（不寫入）" : ""}\n`);
+  const modes = [dryRun ? "試跑（不寫入）" : null, onlyNew ? "只新增，不更新既有者" : null].filter(Boolean);
+  console.log(`檔案：${filePath}\n工作表：${sheet.name}\n教會：${church.name}（${slug}）${modes.length ? `\n模式：${modes.join("、")}` : ""}\n`);
 
   const parsed: Parsed[] = [];
   const skipped: { rowNumber: number; reason: string }[] = [];
@@ -303,16 +308,23 @@ async function main() {
   for (const item of parsed) {
     const header = `【舊名冊匯入：${label}】`;
     const merged = item.mergedRows.length ? [`舊名冊中出現多次（第 ${[item.rowNumber, ...item.mergedRows].join("、")} 列），已合併`] : [];
-    item.values.internalNotes = [header, ...item.notes, ...merged].join("\n");
+    item.values.internalNotes = [header, ...item.notes, ...merged, ...(extraNote ? [extraNote] : [])].join("\n");
   }
 
   let inserted = 0;
   let updated = 0;
+  let untouched = 0;
+  const insertedNames: string[] = [];
   for (const item of parsed) {
     const existing = await db.query.members.findFirst({
       where: and(eq(members.churchId, church.id), eq(members.legacyId, item.legacyId)),
       columns: { id: true, deletedAt: true },
     });
+    if (existing && onlyNew) {
+      untouched++;
+      continue;
+    }
+    if (!existing) insertedNames.push(item.values.englishName ? `${item.values.fullName}（${item.values.englishName}）` : item.values.fullName);
     if (dryRun) {
       if (existing) updated++;
       else inserted++;
@@ -336,12 +348,16 @@ async function main() {
       actorName: "匯入腳本",
       action: "member.import",
       entityType: "member",
-      details: { file: path.basename(filePath), sheet: sheet.name, inserted, updated, skipped: skipped.length },
+      details: { file: path.basename(filePath), sheet: sheet.name, inserted, updated, untouched, skipped: skipped.length },
     });
   }
 
   // ---------- 報告 ----------
-  console.log(`新增：${inserted}　更新：${updated}　略過：${skipped.length}`);
+  console.log(`新增：${inserted}　更新：${updated}　${onlyNew ? `已存在未更動：${untouched}　` : ""}略過：${skipped.length}`);
+  if (onlyNew && insertedNames.length) {
+    console.log("\n新增的人：");
+    for (const name of insertedNames) console.log(`  ${name}`);
+  }
   if (skipped.length) {
     console.log("\n略過的列：");
     for (const s of skipped) console.log(`  第 ${s.rowNumber} 列：${s.reason}`);

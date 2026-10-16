@@ -76,7 +76,16 @@ npm run import:excel -- "docs/San Jose Church Member Directory 2017-10-02.xlsx"
 - 家庭角色、已婚、已受洗、原備註等沒有對應欄位的資訊，都寫入「內部備註」，不會遺失。
 - 同一人出現多列（合併儲存格的續行或重複登錄）會自動合併；姓名不完整、電子郵件格式可疑的列會列在報告中請人工確認。
 - 重複執行是安全的：以姓名產生的舊名冊編號比對，已存在者更新、不重複建檔。
-- 可用 `--sheet "工作表名稱"` 指定工作表，`--label "2017 名冊"` 自訂備註中的來源標籤。
+- 可用 `--sheet "工作表名稱"` 指定工作表，`--label "2017 名冊"` 自訂備註中的來源標籤，`--note "說明"` 在每位匯入者的內部備註加一行說明。
+- **匯入較舊的名冊時務必加 `--only-new`**：只新增資料庫裡還沒有的人，已存在者完全不更動，避免新資料被舊資料覆蓋。報告會列出新增的人名。
+
+本專案兩份舊名冊的建議順序（先新後舊）：
+
+```bash
+npm run import:excel -- "docs/San Jose Church Member Directory 2017-10-02.xlsx"
+npm run import:excel -- "docs/San Jose Church Directory 2016.xlsx" --only-new --label "2016 名冊" \
+  --note "此人僅出現在 2016 年名冊，2017 年名冊已無此人，請確認目前狀態"
+```
 - 正式環境請在本機把 `.env` 的 `DATABASE_URL` 指向 Supabase 後執行，匯入完成後到「操作紀錄」可看到一筆匯入摘要。
 
 ## 部署與新教會上線
