@@ -12,7 +12,7 @@ function describe(url: string) {
     const port = u.port || "5432";
     const problems: string[] = [];
     if (!u.password) problems.push("連線字串裡沒有密碼，請確認 [YOUR-PASSWORD] 已換成實際密碼");
-    if (u.password.includes("[") || u.password.includes("]")) problems.push("密碼還包含中括號，[YOUR-PASSWORD] 要整段換掉，包含 [ 和 ]");
+    if (/YOUR-PASSWORD|%5B|\[/i.test(u.password)) problems.push("密碼還包含中括號，[YOUR-PASSWORD] 要整段換掉，包含 [ 和 ]");
     if (host.endsWith("supabase.com") || host.endsWith("supabase.co")) {
       if (host.includes("pooler") && !user.includes(".")) problems.push(`使用 Supabase 連線池時使用者名稱應為「postgres.專案代碼」，目前是「${user}」，請改用 Connect 畫面的 Transaction pooler 字串`);
       if (!host.includes("pooler")) problems.push("這是 Direct connection 字串（port 5432），家用網路常無法連線，請改用 Transaction pooler（port 6543）");
