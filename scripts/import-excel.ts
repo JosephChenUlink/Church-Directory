@@ -18,11 +18,12 @@
  *   Gender, Married?, Baptized?, Baptized Date, Birth Year, Status, Phone, Email, Address, Notes
  *
  * 重複執行是安全的：每位會員以「姓＋名」產生舊名冊編號（legacy_id），
- * 已存在者會更新資料，不會重複建檔。
+ * 已存在者會更新資料，不會重複建檔。英文姓名比對不到時，再以中文姓名
+ * （至少兩個字）比對，避免不同名冊英文拼法不同而重複建檔。
  */
 import path from "node:path";
 import ExcelJS from "exceljs";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { db } from "../src/db";
 import { auditLogs, churches, members, type NewMember } from "../src/db/schema";
 
@@ -315,11 +316,25 @@ async function main() {
   let updated = 0;
   let untouched = 0;
   const insertedNames: string[] = [];
+  const matchedByChinese: string[] = [];
   for (const item of parsed) {
-    const existing = await db.query.members.findFirst({
+    let existing = await db.query.members.findFirst({
       where: and(eq(members.churchId, church.id), eq(members.legacyId, item.legacyId)),
-      columns: { id: true, deletedAt: true },
+      columns: { id: true, englishName: true },
     });
+    // 英文姓名比對不到：以中文姓名比對（至少兩個中文字，避免只有姓氏的誤判）
+    if (!existing && item.values.fullName !== item.values.englishName && /^[\u4e00-\u9fff]{2,}$/.test(item.values.fullName)) {
+      existing = await db.query.members.findFirst({
+        where: and(
+          eq(members.churchId, church.id),
+          eq(members.fullName, item.values.fullName),
+          isNull(members.deletedAt),
+          ne(members.legacyId, item.legacyId),
+        ),
+        columns: { id: true, englishName: true },
+      });
+      if (existing) matchedByChinese.push(`${item.values.fullName}：名冊「${item.values.englishName}」＝ 資料庫「${existing.englishName}」`);
+    }
     if (existing && onlyNew) {
       untouched++;
       continue;
@@ -357,6 +372,10 @@ async function main() {
   if (onlyNew && insertedNames.length) {
     console.log("\n新增的人：");
     for (const name of insertedNames) console.log(`  ${name}`);
+  }
+  if (matchedByChinese.length) {
+    console.log("\n英文拼法不同、以中文姓名判定為同一人：");
+    for (const line of matchedByChinese) console.log(`  ${line}`);
   }
   if (skipped.length) {
     console.log("\n略過的列：");
